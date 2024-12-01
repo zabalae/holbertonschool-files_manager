@@ -1,48 +1,29 @@
-import redis from 'redis';
-import { promisify } from 'util';
+const redis = require('redis');
+const { promisify } = require('util');
 
-/**
- * Class for performing operations with Redis service
- */
 class RedisClient {
   constructor() {
-    this.client = redis.createClient();
-    this.getAsync = promisify(this.client.get).bind(this.client);
-    this.client.on('error', (error) => {
-      console.log(`Redis client not connected to the server: ${error.message}`);
-    });
-    this.client.on('connect', () => {
-      //   console.log('Redis client connected to the server');
-    });
+    this.redisClient = redis.createClient().on('error', (err) => { console.log(err.message); });
   }
 
-  /**
-   * Checks if connection to Redis is Alive
-   */
   isAlive() {
-    return this.client.connected;
+    return this.redisClient.connected;
   }
 
-  /**
-   * gets value corresponding to key in redis
-   */
   async get(key) {
-    const value = await this.getAsync(key);
+    const redisGet = promisify(this.redisClient.get).bind(this.redisClient);
+    const value = await redisGet(key);
     return value;
   }
 
-  /**
-   * Creates a new key in redis with a specific TTL
-   */
-  async set(key, value, duration) {
-    this.client.setex(key, duration, value);
+  async set(key, value, expDuration) {
+    const redisSet = promisify(this.redisClient.setex).bind(this.redisClient);
+    await redisSet(key, expDuration, value);
   }
 
-  /**
-   * Deletes key in redis service
-   */
   async del(key) {
-    this.client.del(key);
+    const redisDel = promisify(this.redisClient.del).bind(this.redisClient);
+    await redisDel(key);
   }
 }
 
